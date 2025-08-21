@@ -3,27 +3,35 @@ package agent
 import (
 	"log"
 	"os"
+	"path/filepath"
+
+	"redoubt-protocol/internal/policy"
 )
 
-func Init() error {
-	// Ensure log directory
-	if err := os.MkdirAll("_logs", 0755); err != nil {
+var pol *policy.Policy
+
+func Init(policyObj *policy.Policy) error {
+	// keep global policy
+	pol = policyObj
+	if pol == nil {
+		pol = policy.DefaultPolicy()
+	}
+
+	// Ensure directories
+	if err := os.MkdirAll("_logs", 0o755); err != nil {
+		return err
+	}
+	if err := os.MkdirAll("_incidents", 0o755); err != nil {
 		return err
 	}
 
-	// Ensure incident directory
-	if err := os.MkdirAll("_incidents", 0755); err != nil {
-		return err
-	}
-
-	// Create log file
-	logFile, err := os.OpenFile("_logs/redoubt.log",
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// Open log file and set global logger
+	logPath := filepath.Join("_logs", "redoubt.log")
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
-
-	log.SetOutput(logFile)
-	log.Println("Agent initialized.")
+	log.SetOutput(f)
+	log.Printf("Agent initialized. simulate=%v", pol.Simulate)
 	return nil
 }
