@@ -1,8 +1,6 @@
 package isolation
 
-import (
-	"runtime"
-)
+import "runtime"
 
 func DetectOS() string {
 	switch runtime.GOOS {
@@ -11,7 +9,6 @@ func DetectOS() string {
 	case "windows":
 		return "windows"
 	case "android":
-		// Termux usually reports android
 		return "android"
 	default:
 		return "unknown"
