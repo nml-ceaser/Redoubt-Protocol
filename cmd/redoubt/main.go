@@ -1,35 +1,45 @@
-package core
+package main
 
 import (
-	"encoding/json"
 	"log"
+	"net/http"
 	"os"
-	"path/filepath"
-	"time"
+	"os/signal"
+	"syscall"
+
+	"redoubt-protocol/internal/agent"
+	"redoubt-protocol/internal/policy"
 )
 
-type Event struct {
-	Time   time.Time         `json:"time"`
-	Kind   string            `json:"kind"`
-	Reason string            `json:"reason"`
-	Meta   map[string]any    `json:"meta"`
-}
+func main() {
+	// Load policy early so Init can use simulate flag if needed
+	pol, err := policy.LoadPolicy("configs/policy.yaml")
+	if err != nil {
+		log.Printf("warning: failed to load policy (using defaults): %v", err)
+		pol = policy.DefaultPolicy()
+	}
 
-func PersistIncident(ev Event) error {
-	dir := "_incidents"
-	if err := os.MkdirAll(dir, 0o755); err != nil { return err }
-	fn := filepath.Join(dir, time.Now().UTC().Format("20060102T150405Z")+".json")
-	f, err := os.Create(fn)
-	if err != nil { return err }
-	defer f.Close()
-	return json.NewEncoder(f).Encode(ev)
-}
+	// Initialize agent (logging + incidents)
+	if err := agent.Init(pol); err != nil {
+		log.Fatalf("failed to initialize agent: %v", err)
+	}
 
-func AppendLog(path string, line string) {
-	if path == "" { return }
-	_ = os.MkdirAll(filepath.Dir(path), 0o755)
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
-	if err != nil { log.Printf("log open: %v", err); return }
-	defer f.Close()
-	_, _ = f.WriteString(line+"\n")
+	// Register routes
+	http.HandleFunc("/healthz", agent.HealthHandler)
+	http.HandleFunc("/trigger", agent.TriggerHandler)
+
+	// Listen in a goroutine so we can gracefully handle signals
+	go func() {
+		addr := ":8686"
+		log.Printf("Redoubt Protocol Agent listening on %s (simulate=%v)", addr, pol.Simulate)
+		if err := http.ListenAndServe(addr, nil); err != nil {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+
+	// Wait for termination signals to exit cleanly
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+	log.Println("Shutting down agent.")
 }
