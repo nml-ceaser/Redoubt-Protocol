@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
-	"strconv"
 	"syscall"
 
 	"redoubt-protocol/internal/policy"
