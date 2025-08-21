@@ -1,3 +1,8 @@
-mode: simulate   # simulate | enforce (enforce will matter in later milestones)
-log_path: ./_logs/redoubt.log
-listen_addr: 127.0.0.1:8686
+isolation:
+  linux:
+    - block_network
+    - freeze_process
+  windows:
+    - disable_interface
+  android:
+    - log_only
