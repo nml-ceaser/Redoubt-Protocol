@@ -1,6 +1,6 @@
 # Policy for Redoubt Protocol
 # WARNING: simulate: true prevents destructive commands from running.
-simulate: true       # set to false to actually perform actions (only run when authorized)
+simulate: false       # set to false to actually perform actions (only run when authorized)
 allowlist:           # network addresses to keep open (not used yet, informative)
   - 127.0.0.1/32
 isolation:
@@ -15,7 +15,7 @@ isolation:
 # Optional extra controls:
 controls:
   linux:
-    pause_self: false    # if true, allow freeze_process to pause the agent process itself (dangerous)
+    pause_self: true    # if true, allow freeze_process to pause the agent process itself (dangerous)
     target_pid: 0        # pid to freeze; 0 == no explicit target
   windows:
     interface_name: ""   # if empty, will attempt to auto-detect (may fail)
